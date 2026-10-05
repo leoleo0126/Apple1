@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Apple Game Auto
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -31,6 +32,10 @@ jobs:
           mkdir -p app/src/main/res/xml
           mkdir -p app/src/main/res/values
 
+          # --------------------------------------------------
+          # settings.gradle
+          # --------------------------------------------------
+
           cat > settings.gradle <<'EOF'
           pluginManagement {
               repositories {
@@ -41,7 +46,9 @@ jobs:
           }
 
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositoriesMode.set(
+                  RepositoriesMode.FAIL_ON_PROJECT_REPOS
+              )
 
               repositories {
                   google()
@@ -54,23 +61,32 @@ jobs:
           include(":app")
           EOF
 
+          # --------------------------------------------------
+          # build.gradle
+          # --------------------------------------------------
+
           cat > build.gradle <<'EOF'
           plugins {
               id 'com.android.application' version '8.7.3' apply false
-              id 'org.jetbrains.kotlin.android' version '2.0.21' apply false
           }
           EOF
+
+          # --------------------------------------------------
+          # gradle.properties
+          # --------------------------------------------------
 
           cat > gradle.properties <<'EOF'
           org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
           android.useAndroidX=true
-          kotlin.code.style=official
           EOF
+
+          # --------------------------------------------------
+          # app/build.gradle
+          # --------------------------------------------------
 
           cat > app/build.gradle <<'EOF'
           plugins {
               id 'com.android.application'
-              id 'org.jetbrains.kotlin.android'
           }
 
           android {
@@ -82,8 +98,8 @@ jobs:
                   applicationId 'com.example.applegameauto'
                   minSdk 26
                   targetSdk 35
-                  versionCode 2
-                  versionName '2.0'
+                  versionCode 3
+                  versionName '3.0'
               }
 
               buildTypes {
@@ -103,24 +119,27 @@ jobs:
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
               }
-
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
           }
 
           dependencies {
-              implementation 'androidx.core:core-ktx:1.15.0'
+              implementation 'androidx.core:core:1.15.0'
               implementation 'androidx.appcompat:appcompat:1.7.0'
-              implementation 'com.google.android.material:material:1.12.0'
 
               implementation 'com.google.mlkit:text-recognition:16.0.1'
           }
           EOF
 
+          # --------------------------------------------------
+          # ProGuard
+          # --------------------------------------------------
+
           cat > app/proguard-rules.pro <<'EOF'
-          # No custom ProGuard rules.
+          # No custom rules.
           EOF
+
+          # --------------------------------------------------
+          # AndroidManifest.xml
+          # --------------------------------------------------
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -145,8 +164,13 @@ jobs:
                       android:exported="true">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+
+                          <action
+                              android:name="android.intent.action.MAIN" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
                   </activity>
@@ -157,7 +181,10 @@ jobs:
                       android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
 
                       <intent-filter>
-                          <action android:name="android.accessibilityservice.AccessibilityService" />
+
+                          <action
+                              android:name="android.accessibilityservice.AccessibilityService" />
+
                       </intent-filter>
 
                       <meta-data
@@ -176,6 +203,10 @@ jobs:
           </manifest>
           EOF
 
+          # --------------------------------------------------
+          # strings.xml
+          # --------------------------------------------------
+
           cat > app/src/main/res/values/strings.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
 
@@ -192,6 +223,10 @@ jobs:
           </resources>
           EOF
 
+          # --------------------------------------------------
+          # themes.xml
+          # --------------------------------------------------
+
           cat > app/src/main/res/values/themes.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
 
@@ -199,26 +234,32 @@ jobs:
 
               <style
                   name="AppTheme"
-                  parent="Theme.Material3.DayNight.NoActionBar">
+                  parent="android:style/Theme.Material.Light.NoActionBar">
 
                   <item name="android:fontFamily">sans</item>
 
-                  <item name="android:windowLightStatusBar">
-                      true
+                  <item name="android:colorAccent">#555555</item>
+
+                  <item name="android:navigationBarColor">
+                      #FFFFFF
                   </item>
 
                   <item name="android:statusBarColor">
                       #FFFFFF
                   </item>
 
-                  <item name="android:navigationBarColor">
-                      #FFFFFF
+                  <item name="android:windowLightStatusBar">
+                      true
                   </item>
 
               </style>
 
           </resources>
           EOF
+
+          # --------------------------------------------------
+          # accessibility_service_config.xml
+          # --------------------------------------------------
 
           cat > app/src/main/res/xml/accessibility_service_config.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -240,1910 +281,2024 @@ jobs:
 
           EOF
 
-          cat > app/src/main/java/com/example/applegameauto/MainActivity.kt <<'EOF'
-          package com.example.applegameauto
+          # ==================================================
+          # MainActivity.java
+          # ==================================================
 
-          import android.app.Activity
-          import android.content.Context
-          import android.content.Intent
-          import android.media.projection.MediaProjectionManager
-          import android.os.Bundle
-          import android.provider.Settings
-          import android.graphics.Color
-          import android.view.Gravity
-          import android.widget.Button
-          import android.widget.LinearLayout
-          import android.widget.ScrollView
-          import android.widget.TextView
-          import android.widget.Toast
-          import java.util.Locale
+          cat > app/src/main/java/com/example/applegameauto/MainActivity.java <<'EOF'
+          package com.example.applegameauto;
 
-          class MainActivity : Activity() {
+          import android.app.Activity;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.media.projection.MediaProjectionManager;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.provider.Settings;
+          import android.graphics.Color;
+          import android.view.Gravity;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+          import android.widget.Toast;
 
-              companion object {
-                  private const val REQUEST_CAPTURE = 1001
+          public class MainActivity extends Activity {
 
-                  const val EXTRA_RESULT_CODE =
-                      "capture_result_code"
+              private static final int REQUEST_CAPTURE = 1001;
 
-                  const val EXTRA_DATA =
-                      "capture_data"
-              }
+              private TextView statusText;
 
-              private lateinit var statusText: TextView
+              private int captureResultCode = -1;
 
-              private var captureResultCode: Int? = null
+              private Intent captureData = null;
 
-              private var captureData: Intent? = null
+              private final Handler handler =
+                      new Handler(Looper.getMainLooper());
 
-              private val handler =
-                  android.os.Handler(
-                      android.os.Looper.getMainLooper()
-                  )
+              private final Runnable statusRunnable =
+                      new Runnable() {
 
-              private val statusRunnable =
-                  object : Runnable {
+                          @Override
+                          public void run() {
 
-                      override fun run() {
-                          updateStatus()
+                              updateStatus();
 
-                          handler.postDelayed(
-                              this,
-                              500L
-                          )
-                      }
-                  }
+                              handler.postDelayed(
+                                      this,
+                                      500
+                              );
+                          }
+                      };
 
-              override fun onCreate(
-                  savedInstanceState: Bundle?
+              @Override
+              protected void onCreate(
+                      Bundle savedInstanceState
               ) {
-                  super.onCreate(savedInstanceState)
 
-                  createUi()
+                  super.onCreate(savedInstanceState);
 
-                  handler.post(statusRunnable)
+                  createUserInterface();
+
+                  handler.post(statusRunnable);
               }
 
-              private fun createUi() {
+              private void createUserInterface() {
 
-                  val root =
-                      ScrollView(this)
+                  ScrollView scrollView =
+                          new ScrollView(this);
 
-                  val layout =
-                      LinearLayout(this)
+                  LinearLayout layout =
+                          new LinearLayout(this);
 
-                  layout.orientation =
-                      LinearLayout.VERTICAL
+                  layout.setOrientation(
+                          LinearLayout.VERTICAL
+                  );
 
                   layout.setPadding(
-                      40,
-                      50,
-                      40,
-                      40
-                  )
+                          40,
+                          50,
+                          40,
+                          40
+                  );
 
-                  val title =
-                      TextView(this)
+                  TextView title =
+                          new TextView(this);
 
-                  title.text =
-                      "🍎 사과게임 자동 플레이"
+                  title.setText(
+                          "🍎 사과게임 자동 플레이"
+                  );
 
-                  title.textSize =
-                      25f
+                  title.setTextSize(25);
 
                   title.setTextColor(
-                      Color.BLACK
-                  )
+                          Color.BLACK
+                  );
 
                   title.setPadding(
-                      0,
-                      0,
-                      0,
-                      30
-                  )
+                          0,
+                          0,
+                          0,
+                          30
+                  );
 
-                  val info =
-                      TextView(this)
+                  layout.addView(title);
 
-                  info.text =
-                      """
-                      사용 순서
+                  TextView description =
+                          new TextView(this);
 
-                      1. 접근성 서비스를 켭니다.
-                      2. 화면 캡처 권한을 허용합니다.
-                      3. 사과게임 화면으로 이동합니다.
-                      4. 자동 플레이를 시작합니다.
+                  description.setText(
+                          "사용 순서\n\n" +
+                          "1. 접근성 서비스를 켭니다.\n" +
+                          "2. 접근성 테스트를 합니다.\n" +
+                          "3. 화면 캡처 권한을 허용합니다.\n" +
+                          "4. 사과게임을 실행합니다.\n" +
+                          "5. 자동 플레이를 시작합니다.\n\n" +
+                          "아래 상태창에서 현재 상태를 확인할 수 있습니다."
+                  );
 
-                      아래 상태창에서
-                      실제로 숫자를 인식하고 있는지
-                      확인할 수 있습니다.
-                      """.trimIndent()
+                  description.setTextSize(16);
 
-                  info.textSize =
-                      16f
+                  description.setPadding(
+                          0,
+                          0,
+                          0,
+                          20
+                  );
 
-                  info.setPadding(
-                      0,
-                      0,
-                      0,
-                      25
-                  )
+                  layout.addView(description);
 
-                  val accessibilityButton =
-                      Button(this)
+                  Button accessibilityButton =
+                          new Button(this);
 
-                  accessibilityButton.text =
-                      "① 접근성 서비스 설정"
+                  accessibilityButton.setText(
+                          "① 접근성 서비스 설정"
+                  );
 
-                  accessibilityButton.setOnClickListener {
+                  accessibilityButton.setOnClickListener(
+                          v -> {
 
-                      try {
+                              try {
 
-                          startActivity(
-                              Intent(
-                                  Settings.ACTION_ACCESSIBILITY_SETTINGS
-                              )
-                          )
+                                  Intent intent =
+                                          new Intent(
+                                                  Settings.ACTION_ACCESSIBILITY_SETTINGS
+                                          );
 
-                      } catch (e: Exception) {
+                                  startActivity(intent);
 
-                          Toast.makeText(
-                              this,
-                              "접근성 설정을 열 수 없습니다.",
-                              Toast.LENGTH_SHORT
-                          ).show()
+                              } catch (Exception e) {
 
-                      }
-                  }
+                                  Toast.makeText(
+                                          this,
+                                          "접근성 설정을 열 수 없습니다.",
+                                          Toast.LENGTH_LONG
+                                  ).show();
+                              }
+                          }
+                  );
 
-                  val captureButton =
-                      Button(this)
+                  layout.addView(
+                          accessibilityButton
+                  );
 
-                  captureButton.text =
-                      "② 화면 캡처 권한 허용"
+                  Button testButton =
+                          new Button(this);
 
-                  captureButton.setOnClickListener {
+                  testButton.setText(
+                          "② 접근성 테스트 드래그"
+                  );
 
-                      requestScreenCapture()
+                  testButton.setOnClickListener(
+                          v -> {
 
-                  }
+                              AppleAccessibilityService service =
+                                      AppleAccessibilityService.instance;
 
-                  val startButton =
-                      Button(this)
+                              if (service == null) {
 
-                  startButton.text =
-                      "③ 자동 플레이 시작"
+                                  Toast.makeText(
+                                          this,
+                                          "접근성 서비스가 연결되지 않았습니다.",
+                                          Toast.LENGTH_LONG
+                                  ).show();
 
-                  startButton.setOnClickListener {
+                                  return;
+                              }
 
-                      startAutomaticPlay()
+                              service.testSwipe();
 
-                  }
+                              Toast.makeText(
+                                      this,
+                                      "화면 중앙에서 테스트 드래그를 실행했습니다.",
+                                      Toast.LENGTH_SHORT
+                              ).show();
+                          }
+                  );
 
-                  val testButton =
-                      Button(this)
+                  layout.addView(testButton);
 
-                  testButton.text =
-                      "접근성 테스트 드래그"
+                  Button captureButton =
+                          new Button(this);
 
-                  testButton.setOnClickListener {
+                  captureButton.setText(
+                          "③ 화면 캡처 권한 허용"
+                  );
 
-                      val service =
-                          AppleAccessibilityService.instance
+                  captureButton.setOnClickListener(
+                          v -> requestScreenCapture()
+                  );
 
-                      if (service == null) {
+                  layout.addView(captureButton);
 
-                          Toast.makeText(
-                              this,
-                              "접근성 서비스가 연결되지 않았습니다.",
-                              Toast.LENGTH_LONG
-                          ).show()
+                  Button startButton =
+                          new Button(this);
 
-                          return@setOnClickListener
-                      }
+                  startButton.setText(
+                          "④ 자동 플레이 시작"
+                  );
 
-                      service.testSwipe()
+                  startButton.setOnClickListener(
+                          v -> startAutomaticPlay()
+                  );
 
-                  }
+                  layout.addView(startButton);
 
-                  val stopButton =
-                      Button(this)
+                  Button stopButton =
+                          new Button(this);
 
-                  stopButton.text =
-                      "④ 자동 플레이 중지"
+                  stopButton.setText(
+                          "⑤ 자동 플레이 중지"
+                  );
 
-                  stopButton.setOnClickListener {
+                  stopButton.setOnClickListener(
+                          v -> {
 
-                      GameCaptureService.stop(this)
+                              GameCaptureService.stop(
+                                      this
+                              );
 
-                      Toast.makeText(
-                          this,
-                          "자동 플레이를 중지했습니다.",
-                          Toast.LENGTH_SHORT
-                      ).show()
+                              Toast.makeText(
+                                      this,
+                                      "자동 플레이를 중지했습니다.",
+                                      Toast.LENGTH_SHORT
+                              ).show();
+                          }
+                  );
 
-                  }
+                  layout.addView(stopButton);
 
                   statusText =
-                      TextView(this)
+                          new TextView(this);
 
-                  statusText.textSize =
-                      16f
+                  statusText.setTextSize(16);
 
                   statusText.setTextColor(
-                      Color.DKGRAY
-                  )
+                          Color.DKGRAY
+                  );
+
+                  statusText.setGravity(
+                          Gravity.START
+                  );
 
                   statusText.setPadding(
-                      20,
-                      30,
-                      20,
-                      30
-                  )
+                          20,
+                          30,
+                          20,
+                          30
+                  );
 
-                  statusText.gravity =
-                      Gravity.START
+                  layout.addView(statusText);
 
-                  layout.addView(title)
-                  layout.addView(info)
-                  layout.addView(accessibilityButton)
-                  layout.addView(captureButton)
-                  layout.addView(startButton)
-                  layout.addView(testButton)
-                  layout.addView(stopButton)
-                  layout.addView(statusText)
+                  scrollView.addView(layout);
 
-                  root.addView(layout)
-
-                  setContentView(root)
+                  setContentView(scrollView);
               }
 
-              private fun requestScreenCapture() {
+              private void requestScreenCapture() {
 
-                  val manager =
-                      getSystemService(
-                          Context.MEDIA_PROJECTION_SERVICE
-                      ) as MediaProjectionManager
+                  MediaProjectionManager manager =
+                          (MediaProjectionManager)
+                                  getSystemService(
+                                          Context.MEDIA_PROJECTION_SERVICE
+                                  );
+
+                  if (manager == null) {
+
+                      Toast.makeText(
+                              this,
+                              "화면 캡처 기능을 사용할 수 없습니다.",
+                              Toast.LENGTH_LONG
+                      ).show();
+
+                      return;
+                  }
 
                   try {
 
-                      startActivityForResult(
-                          manager.createScreenCaptureIntent(),
-                          REQUEST_CAPTURE
-                      )
+                      Intent intent =
+                              manager.createScreenCaptureIntent();
 
-                  } catch (e: Exception) {
+                      startActivityForResult(
+                              intent,
+                              REQUEST_CAPTURE
+                      );
+
+                  } catch (Exception e) {
 
                       Toast.makeText(
-                          this,
-                          "화면 캡처 권한 요청 실패",
-                          Toast.LENGTH_LONG
-                      ).show()
-
+                              this,
+                              "화면 캡처 권한 요청 실패",
+                              Toast.LENGTH_LONG
+                      ).show();
                   }
               }
 
-              private fun startAutomaticPlay() {
+              private void startAutomaticPlay() {
 
                   if (
-                      !AppleAccessibilityService.isEnabled ||
-                      AppleAccessibilityService.instance == null
+                          AppleAccessibilityService.instance
+                                  == null
                   ) {
 
                       Toast.makeText(
-                          this,
-                          "먼저 접근성 서비스를 켜주세요.",
-                          Toast.LENGTH_LONG
-                      ).show()
+                              this,
+                              "먼저 접근성 서비스를 켜주세요.",
+                              Toast.LENGTH_LONG
+                      ).show();
 
-                      return
+                      return;
                   }
 
-                  val resultCode =
-                      captureResultCode
-
-                  val data =
-                      captureData
-
                   if (
-                      resultCode == null ||
-                      data == null
+                          captureResultCode == -1
+                                  || captureData == null
                   ) {
 
                       Toast.makeText(
-                          this,
-                          "먼저 '② 화면 캡처 권한 허용'을 눌러주세요.",
-                          Toast.LENGTH_LONG
-                      ).show()
+                              this,
+                              "먼저 화면 캡처 권한을 허용해주세요.",
+                              Toast.LENGTH_LONG
+                      ).show();
 
-                      return
+                      return;
                   }
 
-                  val serviceIntent =
-                      Intent(
-                          this,
-                          GameCaptureService::class.java
-                      )
+                  Intent serviceIntent =
+                          new Intent(
+                                  this,
+                                  GameCaptureService.class
+                          );
 
                   serviceIntent.putExtra(
-                      GameCaptureService.EXTRA_RESULT_CODE,
-                      resultCode
-                  )
+                          GameCaptureService.EXTRA_RESULT_CODE,
+                          captureResultCode
+                  );
 
                   serviceIntent.putExtra(
-                      GameCaptureService.EXTRA_DATA,
-                      data
-                  )
+                          GameCaptureService.EXTRA_DATA,
+                          captureData
+                  );
 
                   try {
 
                       if (
-                          android.os.Build.VERSION.SDK_INT >=
-                          android.os.Build.VERSION_CODES.O
+                              Build.VERSION.SDK_INT
+                                      >= Build.VERSION_CODES.O
                       ) {
 
                           startForegroundService(
-                              serviceIntent
-                          )
+                                  serviceIntent
+                          );
 
                       } else {
 
                           startService(
-                              serviceIntent
-                          )
-
+                                  serviceIntent
+                          );
                       }
 
                       /*
-                       * MediaProjection 권한 Intent는
-                       * 한 번 사용한 뒤 다시 사용하지 않는다.
+                       * MediaProjection 권한은
+                       * 한 세션에서 한 번만 사용한다.
                        */
-                      captureResultCode = null
-                      captureData = null
+                      captureResultCode = -1;
+
+                      captureData = null;
 
                       Toast.makeText(
-                          this,
-                          "자동 플레이를 시작했습니다.",
-                          Toast.LENGTH_SHORT
-                      ).show()
+                              this,
+                              "자동 플레이를 시작했습니다.",
+                              Toast.LENGTH_SHORT
+                      ).show();
 
-                  } catch (e: Exception) {
+                  } catch (Exception e) {
 
                       Toast.makeText(
-                          this,
-                          "자동 플레이 시작 실패: ${e.message}",
-                          Toast.LENGTH_LONG
-                      ).show()
-
+                              this,
+                              "자동 플레이 시작 실패: "
+                                      + e.getMessage(),
+                              Toast.LENGTH_LONG
+                      ).show();
                   }
               }
 
-              @Suppress("DEPRECATION")
-              override fun onActivityResult(
-                  requestCode: Int,
-                  resultCode: Int,
-                  data: Intent?
+              @SuppressWarnings("deprecation")
+              @Override
+              protected void onActivityResult(
+                      int requestCode,
+                      int resultCode,
+                      Intent data
               ) {
 
                   super.onActivityResult(
-                      requestCode,
-                      resultCode,
-                      data
-                  )
+                          requestCode,
+                          resultCode,
+                          data
+                  );
 
                   if (
-                      requestCode == REQUEST_CAPTURE &&
-                      resultCode == RESULT_OK &&
-                      data != null
+                          requestCode == REQUEST_CAPTURE
+                                  && resultCode == RESULT_OK
+                                  && data != null
                   ) {
 
                       captureResultCode =
-                          resultCode
+                              resultCode;
 
                       captureData =
-                          data
+                              data;
 
                       Toast.makeText(
-                          this,
-                          "화면 캡처 권한이 준비되었습니다.",
-                          Toast.LENGTH_SHORT
-                      ).show()
+                              this,
+                              "화면 캡처 권한이 준비되었습니다.",
+                              Toast.LENGTH_SHORT
+                      ).show();
 
                   } else if (
-                      requestCode == REQUEST_CAPTURE
+                          requestCode == REQUEST_CAPTURE
                   ) {
 
-                      captureResultCode =
-                          null
+                      captureResultCode = -1;
 
-                      captureData =
-                          null
+                      captureData = null;
 
                       Toast.makeText(
-                          this,
-                          "화면 캡처 권한이 취소되었습니다.",
-                          Toast.LENGTH_SHORT
-                      ).show()
+                              this,
+                              "화면 캡처 권한이 취소되었습니다.",
+                              Toast.LENGTH_SHORT
+                      ).show();
                   }
               }
 
-              private fun updateStatus() {
+              private void updateStatus() {
 
-                  if (!::statusText.isInitialized) {
-                      return
+                  if (statusText == null) {
+                      return;
                   }
 
-                  val prefs =
-                      getSharedPreferences(
-                          "apple_game_status",
-                          Context.MODE_PRIVATE
-                      )
+                  android.content.SharedPreferences prefs =
+                          getSharedPreferences(
+                                  "apple_game_status",
+                                  MODE_PRIVATE
+                          );
 
-                  val accessibility =
-                      if (
-                          AppleAccessibilityService.isEnabled
-                      ) {
-                          "✅ 연결됨"
-                      } else {
-                          "❌ 연결 안 됨"
-                      }
+                  boolean accessibility =
+                          AppleAccessibilityService.instance
+                                  != null;
 
-                  val capture =
-                      prefs.getString(
-                          "capture",
-                          "대기"
-                      )
+                  boolean running =
+                          prefs.getBoolean(
+                                  "running",
+                                  false
+                          );
 
-                  val ocr =
-                      prefs.getInt(
-                          "ocr_count",
-                          0
-                      )
-
-                  val move =
-                      prefs.getString(
-                          "move",
-                          "아직 찾지 않음"
-                      )
-
-                  val gesture =
-                      prefs.getString(
-                          "gesture",
-                          "대기"
-                      )
-
-                  val error =
-                      prefs.getString(
-                          "error",
-                          ""
-                      )
-
-                  val running =
-                      prefs.getBoolean(
-                          "running",
-                          false
-                      )
-
-                  val runningText =
-                      if (running) {
-                          "🟢 실행 중"
-                      } else {
-                          "⚪ 대기 중"
-                      }
-
-                  statusText.text =
-                      String.format(
-                          Locale.KOREA,
-                          """
-                          ────────────────────
-                          현재 상태
-
-                          자동 플레이:
-                          %s
-
-                          접근성 서비스:
-                          %s
-
-                          화면 캡처:
-                          %s
-
-                          인식된 숫자:
-                          %d개
-
-                          합계 10:
-                          %s
-
-                          마지막 드래그:
-                          %s
-
-                          드래그 결과:
-                          %s
-
-                          오류:
-                          %s
-                          ────────────────────
-                          """.trimIndent(),
-                          runningText,
-                          accessibility,
-                          capture,
-                          ocr,
-                          move,
+                  String capture =
                           prefs.getString(
-                              "last_move",
-                              "-"
-                          ),
-                          gesture,
-                          if (error.isEmpty()) {
-                              "없음"
-                          } else {
-                              error
-                          }
-                      )
+                                  "capture",
+                                  "대기"
+                          );
+
+                  int ocr =
+                          prefs.getInt(
+                                  "ocr_count",
+                                  0
+                          );
+
+                  String move =
+                          prefs.getString(
+                                  "move",
+                                  "대기"
+                          );
+
+                  String lastMove =
+                          prefs.getString(
+                                  "last_move",
+                                  "-"
+                          );
+
+                  String gesture =
+                          prefs.getString(
+                                  "gesture",
+                                  "대기"
+                          );
+
+                  String error =
+                          prefs.getString(
+                                  "error",
+                                  ""
+                          );
+
+                  String text =
+                          "━━━━━━━━━━━━━━━━━━\n" +
+                          "현재 상태\n\n" +
+
+                          "자동 플레이: "
+                                  + (
+                                  running
+                                          ? "🟢 실행 중"
+                                          : "⚪ 대기"
+                          )
+                                  + "\n\n" +
+
+                          "접근성 서비스: "
+                                  + (
+                                  accessibility
+                                          ? "✅ 연결됨"
+                                          : "❌ 연결 안 됨"
+                          )
+                                  + "\n\n" +
+
+                          "화면 캡처: "
+                                  + capture
+                                  + "\n\n" +
+
+                          "인식된 숫자: "
+                                  + ocr
+                                  + "개\n\n" +
+
+                          "합계 10: "
+                                  + move
+                                  + "\n\n" +
+
+                          "마지막 드래그: "
+                                  + lastMove
+                                  + "\n\n" +
+
+                          "드래그 결과: "
+                                  + gesture
+                                  + "\n\n" +
+
+                          "오류: "
+                                  + (
+                                  error.isEmpty()
+                                          ? "없음"
+                                          : error
+                          )
+                                  + "\n" +
+
+                          "━━━━━━━━━━━━━━━━━━";
+
+                  statusText.setText(text);
               }
 
-              override fun onDestroy() {
+              @Override
+              protected void onDestroy() {
 
                   handler.removeCallbacks(
-                      statusRunnable
-                  )
+                          statusRunnable
+                  );
 
-                  super.onDestroy()
+                  super.onDestroy();
               }
           }
           EOF
 
-          cat > app/src/main/java/com/example/applegameauto/AppleAccessibilityService.kt <<'EOF'
-          package com.example.applegameauto
+          # ==================================================
+          # AppleAccessibilityService.java
+          # ==================================================
 
-          import android.accessibilityservice.AccessibilityService
-          import android.accessibilityservice.GestureDescription
-          import android.graphics.Path
-          import android.os.Build
-          import android.view.accessibility.AccessibilityEvent
-          import android.widget.Toast
+          cat > app/src/main/java/com/example/applegameauto/AppleAccessibilityService.java <<'EOF'
+          package com.example.applegameauto;
 
-          class AppleAccessibilityService :
-              AccessibilityService() {
+          import android.accessibilityservice.AccessibilityService;
+          import android.accessibilityservice.GestureDescription;
+          import android.graphics.Path;
+          import android.os.Build;
+          import android.view.accessibility.AccessibilityEvent;
 
-              companion object {
+          public class AppleAccessibilityService
+                  extends AccessibilityService {
 
-                  @Volatile
-                  var instance:
-                      AppleAccessibilityService? = null
+              public static volatile
+              AppleAccessibilityService instance = null;
 
-                  @Volatile
-                  var isEnabled:
-                      Boolean = false
-              }
+              @Override
+              protected void onServiceConnected() {
 
-              override fun onServiceConnected() {
+                  super.onServiceConnected();
 
-                  super.onServiceConnected()
-
-                  instance = this
-
-                  isEnabled = true
+                  instance = this;
 
                   saveStatus(
-                      "accessibility",
-                      "connected"
-                  )
+                          "accessibility",
+                          "connected"
+                  );
               }
 
-              override fun onAccessibilityEvent(
-                  event: AccessibilityEvent?
+              @Override
+              public void onAccessibilityEvent(
+                      AccessibilityEvent event
               ) {
+                  // 이벤트를 사용할 필요가 없다.
               }
 
-              override fun onInterrupt() {
+              @Override
+              public void onInterrupt() {
+                  // 아무 작업도 하지 않는다.
               }
 
-              override fun onDestroy() {
+              @Override
+              public void onDestroy() {
 
-                  isEnabled = false
-
-                  if (instance === this) {
-                      instance = null
+                  if (instance == this) {
+                      instance = null;
                   }
 
-                  super.onDestroy()
+                  super.onDestroy();
               }
 
-              fun swipe(
-                  startX: Float,
-                  startY: Float,
-                  endX: Float,
-                  endY: Float,
-                  duration: Long = 180L,
-                  callback: ((Boolean) -> Unit)? = null
+              public void swipe(
+                      float startX,
+                      float startY,
+                      float endX,
+                      float endY,
+                      long duration,
+                      final GestureCallback callback
               ) {
 
                   if (
-                      Build.VERSION.SDK_INT <
-                      Build.VERSION_CODES.N
+                          Build.VERSION.SDK_INT
+                                  < Build.VERSION_CODES.N
                   ) {
 
-                      callback?.invoke(false)
+                      if (callback != null) {
+                          callback.onResult(false);
+                      }
 
-                      return
+                      return;
                   }
 
-                  val path =
-                      Path()
+                  Path path =
+                          new Path();
 
                   path.moveTo(
-                      startX,
-                      startY
-                  )
+                          startX,
+                          startY
+                  );
 
                   path.lineTo(
-                      endX,
-                      endY
-                  )
+                          endX,
+                          endY
+                  );
 
-                  val stroke =
-                      GestureDescription.StrokeDescription(
-                          path,
-                          0L,
-                          duration
-                      )
+                  GestureDescription.StrokeDescription stroke =
+                          new GestureDescription.StrokeDescription(
+                                  path,
+                                  0,
+                                  duration
+                          );
 
-                  val gesture =
-                      GestureDescription.Builder()
-                          .addStroke(stroke)
-                          .build()
+                  GestureDescription gesture =
+                          new GestureDescription.Builder()
+                                  .addStroke(stroke)
+                                  .build();
 
-                  val dispatched =
-                      dispatchGesture(
-                          gesture,
-                          object :
-                              GestureResultCallback() {
+                  boolean dispatched =
+                          dispatchGesture(
+                                  gesture,
+                                  new GestureResultCallback() {
 
-                              override fun onCompleted(
-                                  gestureDescription:
-                                  GestureDescription?
-                              ) {
+                                      @Override
+                                      public void onCompleted(
+                                              GestureDescription gestureDescription
+                                      ) {
 
-                                  saveStatus(
-                                      "gesture",
-                                      "success"
-                                  )
+                                          saveStatus(
+                                                  "gesture",
+                                                  "✅ 성공"
+                                          );
 
-                                  callback?.invoke(
-                                      true
-                                  )
-                              }
+                                          if (callback != null) {
+                                              callback.onResult(true);
+                                          }
+                                      }
 
-                              override fun onCancelled(
-                                  gestureDescription:
-                                  GestureDescription?
-                              ) {
+                                      @Override
+                                      public void onCancelled(
+                                              GestureDescription gestureDescription
+                                      ) {
 
-                                  saveStatus(
-                                      "gesture",
-                                      "cancelled"
-                                  )
+                                          saveStatus(
+                                                  "gesture",
+                                                  "❌ 취소됨"
+                                          );
 
-                                  callback?.invoke(
-                                      false
-                                  )
-                              }
-                          },
-                          null
-                      )
+                                          if (callback != null) {
+                                              callback.onResult(false);
+                                          }
+                                      }
+                                  },
+                                  null
+                          );
 
                   if (!dispatched) {
 
                       saveStatus(
-                          "gesture",
-                          "dispatch_failed"
-                      )
+                              "gesture",
+                              "❌ dispatch 실패"
+                      );
 
-                      callback?.invoke(false)
+                      if (callback != null) {
+                          callback.onResult(false);
+                      }
                   }
               }
 
-              fun testSwipe() {
+              public void testSwipe() {
 
-                  val dm =
-                      resources.displayMetrics
+                  android.util.DisplayMetrics metrics =
+                          getResources().getDisplayMetrics();
 
-                  val cx =
-                      dm.widthPixels / 2f
+                  float centerX =
+                          metrics.widthPixels / 2f;
 
-                  val cy =
-                      dm.heightPixels / 2f
+                  float centerY =
+                          metrics.heightPixels / 2f;
 
                   swipe(
-                      cx - 150f,
-                      cy,
-                      cx + 150f,
-                      cy,
-                      500L
-                  )
+                          centerX - 200,
+                          centerY,
+                          centerX + 200,
+                          centerY,
+                          700,
+                          null
+                  );
               }
 
-              private fun saveStatus(
-                  key: String,
-                  value: String
+              private void saveStatus(
+                      String key,
+                      String value
               ) {
 
                   getSharedPreferences(
-                      "apple_game_status",
-                      MODE_PRIVATE
+                          "apple_game_status",
+                          MODE_PRIVATE
                   )
-                      .edit()
-                      .putString(
-                          key,
-                          value
-                      )
-                      .apply()
+                          .edit()
+                          .putString(
+                                  key,
+                                  value
+                          )
+                          .apply();
+              }
+
+              public interface GestureCallback {
+
+                  void onResult(boolean success);
               }
           }
           EOF
 
-          cat > app/src/main/java/com/example/applegameauto/GameCaptureService.kt <<'EOF'
-          package com.example.applegameauto
+          # ==================================================
+          # GameCaptureService.java
+          # ==================================================
 
-          import android.app.NotificationChannel
-          import android.app.NotificationManager
-          import android.app.Service
-          import android.content.Context
-          import android.content.Intent
-          import android.content.pm.ServiceInfo
-          import android.graphics.Bitmap
-          import android.graphics.Rect
-          import android.graphics.PixelFormat
-          import android.hardware.display.DisplayManager
-          import android.hardware.display.VirtualDisplay
-          import android.media.Image
-          import android.media.ImageReader
-          import android.media.projection.MediaProjection
-          import android.media.projection.MediaProjectionManager
-          import android.os.Build
-          import android.os.Handler
-          import android.os.IBinder
-          import android.os.Looper
-          import androidx.core.app.NotificationCompat
-          import com.google.mlkit.vision.common.InputImage
-          import com.google.mlkit.vision.text.TextRecognition
-          import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-          import kotlin.math.abs
+          cat > app/src/main/java/com/example/applegameauto/GameCaptureService.java <<'EOF'
+          package com.example.applegameauto;
 
-          class GameCaptureService :
-              Service() {
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.Service;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.pm.ServiceInfo;
+          import android.graphics.Bitmap;
+          import android.graphics.PixelFormat;
+          import android.hardware.display.DisplayManager;
+          import android.hardware.display.VirtualDisplay;
+          import android.media.Image;
+          import android.media.ImageReader;
+          import android.media.projection.MediaProjection;
+          import android.media.projection.MediaProjectionManager;
+          import android.os.Build;
+          import android.os.Handler;
+          import android.os.IBinder;
+          import android.os.Looper;
 
-              companion object {
+          import androidx.core.app.NotificationCompat;
 
-                  const val EXTRA_RESULT_CODE =
-                      "capture_result_code"
+          import com.google.mlkit.vision.common.InputImage;
+          import com.google.mlkit.vision.text.TextRecognition;
+          import com.google.mlkit.vision.text.TextRecognizer;
+          import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
-                  const val EXTRA_DATA =
-                      "capture_data"
+          import java.util.ArrayList;
+          import java.util.List;
 
-                  private const val CHANNEL_ID =
-                      "apple_game_auto"
+          public class GameCaptureService
+                  extends Service {
 
-                  private const val NOTIFICATION_ID =
-                      100
+              public static final String EXTRA_RESULT_CODE =
+                      "capture_result_code";
 
-                  /*
-                   * 기준 화면:
-                   *
-                   * 1536 x 960
-                   *
-                   * 18열 x 9행
-                   */
-                  private const val REF_WIDTH =
-                      1536f
+              public static final String EXTRA_DATA =
+                      "capture_data";
 
-                  private const val REF_HEIGHT =
-                      960f
+              private static final String CHANNEL_ID =
+                      "apple_game_auto";
 
-                  private const val ROWS =
-                      9
+              private static final int NOTIFICATION_ID =
+                      100;
 
-                  private const val COLS =
-                      18
+              /*
+               * 게임판 기준 좌표
+               *
+               * 기준 화면:
+               * 1536 x 960
+               *
+               * 18열 x 9행
+               */
+              private static final int ROWS = 9;
 
-                  private const val FIRST_X =
-                      96f
+              private static final int COLS = 18;
 
-                  private const val FIRST_Y =
-                      200f
+              private static final float REF_WIDTH =
+                      1536f;
 
-                  private const val X_GAP =
-                      78.3f
+              private static final float REF_HEIGHT =
+                      960f;
 
-                  private const val Y_GAP =
-                      78.3f
+              private static final float FIRST_X =
+                      96f;
 
-                  private const val CELL_TOLERANCE =
-                      40f
+              private static final float FIRST_Y =
+                      200f;
 
-                  private const val BOARD_MARGIN =
-                      55f
+              private static final float X_GAP =
+                      78.3f;
 
-                  @Volatile
-                  private var running =
-                      false
+              private static final float Y_GAP =
+                      78.3f;
 
-                  fun stop(context: Context) {
+              private static final float TOLERANCE =
+                      42f;
 
-                      context.stopService(
-                          Intent(
-                              context,
-                              GameCaptureService::class.java
+              private static final float BOARD_MARGIN =
+                      60f;
+
+              private final Handler handler =
+                      new Handler(
+                              Looper.getMainLooper()
+                      );
+
+              private MediaProjection projection;
+
+              private VirtualDisplay virtualDisplay;
+
+              private ImageReader imageReader;
+
+              private TextRecognizer recognizer;
+
+              private boolean processing =
+                      false;
+
+              private boolean running =
+                      false;
+
+              private int screenWidth;
+
+              private int screenHeight;
+
+              private int density;
+
+              @Override
+              public void onCreate() {
+
+                  super.onCreate();
+
+                  createNotificationChannel();
+
+                  Notification notification =
+                          new NotificationCompat.Builder(
+                                  this,
+                                  CHANNEL_ID
                           )
-                      )
-                  }
-              }
+                                  .setContentTitle(
+                                          "사과게임 자동 플레이"
+                                  )
+                                  .setContentText(
+                                          "게임 화면을 분석하고 있습니다."
+                                  )
+                                  .setSmallIcon(
+                                          android.R.drawable.ic_media_play
+                                  )
+                                  .setOngoing(true)
+                                  .build();
 
-              private val handler =
-                  Handler(
-                      Looper.getMainLooper()
-                  )
-
-              private var projection:
-                  MediaProjection? = null
-
-              private var virtualDisplay:
-                  VirtualDisplay? = null
-
-              private var imageReader:
-                  ImageReader? = null
-
-              private var screenWidth =
-                  0
-
-              private var screenHeight =
-                  0
-
-              private var density =
-                  0
-
-              private var processing =
-                  false
-
-              private val recognizer =
-                  TextRecognition.getClient(
-                      TextRecognizerOptions.DEFAULT_OPTIONS
-                  )
-
-              override fun onCreate() {
-
-                  super.onCreate()
-
-                  createNotificationChannel()
-
-                  val notification =
-                      NotificationCompat.Builder(
-                          this,
-                          CHANNEL_ID
-                      )
-                          .setContentTitle(
-                              "사과게임 자동 플레이"
-                          )
-                          .setContentText(
-                              "화면을 분석하고 있습니다."
-                          )
-                          .setSmallIcon(
-                              android.R.drawable.ic_media_play
-                          )
-                          .setOngoing(true)
-                          .build()
-
-                  /*
-                   * Android 10+
-                   * MediaProjection foreground service type
-                   */
                   if (
-                      Build.VERSION.SDK_INT >=
-                      Build.VERSION_CODES.Q
+                          Build.VERSION.SDK_INT
+                                  >= Build.VERSION_CODES.Q
                   ) {
 
                       startForeground(
-                          NOTIFICATION_ID,
-                          notification,
-                          ServiceInfo
-                              .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-                      )
+                              NOTIFICATION_ID,
+                              notification,
+                              ServiceInfo
+                                      .FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                      );
 
                   } else {
 
                       startForeground(
-                          NOTIFICATION_ID,
-                          notification
-                      )
+                              NOTIFICATION_ID,
+                              notification
+                      );
                   }
+
+                  recognizer =
+                          TextRecognition.getClient(
+                                  TextRecognizerOptions.DEFAULT_OPTIONS
+                          );
               }
 
-              override fun onStartCommand(
-                  intent: Intent?,
-                  flags: Int,
-                  startId: Int
-              ): Int {
+              @Override
+              public int onStartCommand(
+                      Intent intent,
+                      int flags,
+                      int startId
+              ) {
 
                   if (running) {
-                      return START_NOT_STICKY
+                      return START_NOT_STICKY;
                   }
 
-                  val resultCode =
-                      intent?.getIntExtra(
-                          EXTRA_RESULT_CODE,
-                          -1
-                      ) ?: -1
+                  if (intent == null) {
 
-                  @Suppress("DEPRECATION")
-                  val data =
-                      intent?.getParcelableExtra(
-                          EXTRA_DATA
-                      ) as? Intent
+                      setError(
+                              "서비스 Intent가 없습니다."
+                      );
+
+                      stopSelf();
+
+                      return START_NOT_STICKY;
+                  }
+
+                  int resultCode =
+                          intent.getIntExtra(
+                                  EXTRA_RESULT_CODE,
+                                  -1
+                          );
+
+                  Intent data;
 
                   if (
-                      resultCode == -1 ||
-                      data == null
+                          Build.VERSION.SDK_INT
+                                  >= Build.VERSION_CODES.TIRAMISU
+                  ) {
+
+                      data =
+                              intent.getParcelableExtra(
+                                      EXTRA_DATA,
+                                      Intent.class
+                              );
+
+                  } else {
+
+                      @SuppressWarnings("deprecation")
+                      Intent oldData =
+                              intent.getParcelableExtra(
+                                      EXTRA_DATA
+                              );
+
+                      data = oldData;
+                  }
+
+                  if (
+                          resultCode == -1
+                                  || data == null
                   ) {
 
                       setError(
-                          "화면 캡처 권한 데이터 없음"
-                      )
+                              "MediaProjection 권한 데이터가 없습니다."
+                      );
 
-                      stopSelf()
+                      stopSelf();
 
-                      return START_NOT_STICKY
+                      return START_NOT_STICKY;
                   }
 
-                  running = true
+                  running = true;
 
-                  saveRunning(true)
+                  saveRunning(true);
 
-                  handler.post {
-                      startCapture(
+                  startCapture(
                           resultCode,
                           data
-                      )
-                  }
+                  );
 
-                  return START_NOT_STICKY
+                  return START_NOT_STICKY;
               }
 
-              private fun startCapture(
-                  resultCode: Int,
-                  data: Intent
+              private void startCapture(
+                      int resultCode,
+                      Intent data
               ) {
 
                   try {
 
-                      val manager =
-                          getSystemService(
-                              Context.MEDIA_PROJECTION_SERVICE
-                          ) as MediaProjectionManager
+                      MediaProjectionManager manager =
+                              (MediaProjectionManager)
+                                      getSystemService(
+                                              Context.MEDIA_PROJECTION_SERVICE
+                                      );
+
+                      if (manager == null) {
+
+                          setError(
+                                  "MediaProjectionManager를 찾을 수 없습니다."
+                          );
+
+                          stopSelf();
+
+                          return;
+                      }
 
                       projection =
-                          manager.getMediaProjection(
-                              resultCode,
-                              data
-                          )
+                              manager.getMediaProjection(
+                                      resultCode,
+                                      data
+                              );
 
                       if (projection == null) {
 
                           setError(
-                              "MediaProjection 생성 실패"
-                          )
+                                  "MediaProjection 생성 실패"
+                          );
 
-                          stopSelf()
+                          stopSelf();
 
-                          return
+                          return;
                       }
 
-                      val metrics =
-                          resources.displayMetrics
+                      android.util.DisplayMetrics metrics =
+                              getResources()
+                                      .getDisplayMetrics();
 
                       screenWidth =
-                          metrics.widthPixels
+                              metrics.widthPixels;
 
                       screenHeight =
-                          metrics.heightPixels
+                              metrics.heightPixels;
 
                       density =
-                          metrics.densityDpi
+                              metrics.densityDpi;
 
                       imageReader =
-                          ImageReader.newInstance(
-                              screenWidth,
-                              screenHeight,
-                              PixelFormat.RGBA_8888,
-                              2
-                          )
+                              ImageReader.newInstance(
+                                      screenWidth,
+                                      screenHeight,
+                                      PixelFormat.RGBA_8888,
+                                      2
+                              );
 
-                      projection?.registerCallback(
-                          object :
-                              MediaProjection.Callback() {
+                      projection.registerCallback(
+                              new MediaProjection.Callback() {
 
-                              override fun onStop() {
+                                  @Override
+                                  public void onStop() {
 
-                                  handler.post {
+                                      handler.post(
+                                              () -> {
 
-                                      setCaptureStatus(
-                                          "중지됨"
-                                      )
+                                                  saveCapture(
+                                                          "중지됨"
+                                                  );
 
-                                      stopSelf()
+                                                  stopSelf();
+                                              }
+                                      );
                                   }
-                              }
-                          },
-                          handler
-                      )
+                              },
+                              handler
+                      );
 
                       virtualDisplay =
-                          projection?.createVirtualDisplay(
-                              "AppleGameCapture",
-                              screenWidth,
-                              screenHeight,
-                              density,
-                              DisplayManager
-                                  .VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-                              imageReader?.surface,
-                              null,
-                              handler
-                          )
+                              projection.createVirtualDisplay(
+                                      "AppleGameCapture",
+                                      screenWidth,
+                                      screenHeight,
+                                      density,
+                                      DisplayManager
+                                              .VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                                      imageReader.getSurface(),
+                                      null,
+                                      handler
+                              );
 
-                      imageReader?.setOnImageAvailableListener(
-                          { reader ->
+                      imageReader.setOnImageAvailableListener(
+                              reader -> {
 
-                              if (processing) {
-                                  return@setOnImageAvailableListener
-                              }
-
-                              processing = true
-
-                              val image =
-                                  try {
-                                      reader
-                                          .acquireLatestImage()
-                                  } catch (
-                                      _: Exception
-                                  ) {
-                                      null
+                                  if (processing) {
+                                      return;
                                   }
 
-                              if (image == null) {
+                                  processing = true;
 
-                                  processing = false
+                                  Image image = null;
 
-                              } else {
+                                  try {
 
-                                  processImage(
-                                      image
-                                  )
-                              }
+                                      image =
+                                              reader.acquireLatestImage();
 
-                          },
-                          handler
-                      )
+                                  } catch (Exception e) {
 
-                      setCaptureStatus(
-                          "연결됨"
-                      )
+                                      setError(
+                                              "화면 이미지 획득 실패: "
+                                                      + e.getMessage()
+                                      );
 
-                  } catch (
-                      e: SecurityException
-                  ) {
+                                      processing = false;
+                                  }
+
+                                  if (image != null) {
+
+                                      processImage(
+                                              image
+                                      );
+                                  } else {
+
+                                      processing = false;
+                                  }
+
+                              },
+                              handler
+                      );
+
+                      saveCapture(
+                              "✅ 연결됨"
+                      );
+
+                      clearError();
+
+                  } catch (SecurityException e) {
 
                       setError(
-                          "화면 캡처 보안 오류: ${e.message}"
-                      )
+                              "MediaProjection 보안 오류: "
+                                      + e.getMessage()
+                      );
 
-                      stopSelf()
+                      stopSelf();
 
-                  } catch (
-                      e: Exception
-                  ) {
+                  } catch (Exception e) {
 
                       setError(
-                          "캡처 시작 오류: ${e.message}"
-                      )
+                              "캡처 시작 오류: "
+                                      + e.getMessage()
+                      );
 
-                      stopSelf()
+                      stopSelf();
                   }
               }
 
-              private fun processImage(
-                  image: Image
+              private void processImage(
+                      Image image
               ) {
+
+                  Bitmap bitmap = null;
 
                   try {
 
-                      val bitmap =
-                          imageToBitmap(
-                              image
-                          )
+                      bitmap =
+                              imageToBitmap(
+                                      image
+                              );
 
-                      image.close()
-
-                      if (bitmap == null) {
-
-                          processing = false
-
-                          return
-                      }
-
-                      recognizeBoard(
-                          bitmap
-                      )
-
-                  } catch (
-                      e: Exception
-                  ) {
-
-                      try {
-                          image.close()
-                      } catch (
-                          _: Exception
-                      ) {
-                      }
+                  } catch (Exception e) {
 
                       setError(
-                          "이미지 처리 오류: ${e.message}"
-                      )
+                              "이미지 변환 실패: "
+                                      + e.getMessage()
+                      );
 
-                      processing = false
+                  } finally {
+
+                      try {
+                          image.close();
+                      } catch (Exception ignored) {
+                      }
                   }
+
+                  if (bitmap == null) {
+
+                      processing = false;
+
+                      return;
+                  }
+
+                  recognizeBoard(
+                          bitmap
+                  );
               }
 
-              private fun imageToBitmap(
-                  image: Image
-              ): Bitmap? {
-
-                  val plane =
-                      image.planes.firstOrNull()
-                          ?: return null
-
-                  val buffer =
-                      plane.buffer
-
-                  val pixelStride =
-                      plane.pixelStride
-
-                  val rowStride =
-                      plane.rowStride
-
-                  val rowPadding =
-                      rowStride -
-                          pixelStride *
-                          image.width
-
-                  val bitmapWidth =
-                      image.width +
-                          rowPadding /
-                          pixelStride
-
-                  val bitmap =
-                      Bitmap.createBitmap(
-                          bitmapWidth,
-                          image.height,
-                          Bitmap.Config.ARGB_8888
-                      )
-
-                  buffer.rewind()
-
-                  bitmap.copyPixelsFromBuffer(
-                      buffer
-                  )
-
-                  return Bitmap.createBitmap(
-                      bitmap,
-                      0,
-                      0,
-                      image.width,
-                      image.height
-                  )
-              }
-
-              private fun recognizeBoard(
-                  bitmap: Bitmap
+              private Bitmap imageToBitmap(
+                      Image image
               ) {
 
-                  /*
-                   * 실제 캡처 이미지의 크기를 사용한다.
-                   */
-                  val captureWidth =
-                      bitmap.width.toFloat()
+                  Image.Plane[] planes =
+                          image.getPlanes();
 
-                  val captureHeight =
-                      bitmap.height.toFloat()
-
-                  val scaleX =
-                      captureWidth /
-                          REF_WIDTH
-
-                  val scaleY =
-                      captureHeight /
-                          REF_HEIGHT
-
-                  val refLeft =
-                      FIRST_X -
-                          BOARD_MARGIN
-
-                  val refTop =
-                      FIRST_Y -
-                          BOARD_MARGIN
-
-                  val refRight =
-                      FIRST_X +
-                          (COLS - 1) *
-                          X_GAP +
-                          BOARD_MARGIN
-
-                  val refBottom =
-                      FIRST_Y +
-                          (ROWS - 1) *
-                          Y_GAP +
-                          BOARD_MARGIN
-
-                  val cropLeft =
-                      (
-                          refLeft *
-                              scaleX
-                      )
-                          .toInt()
-                          .coerceIn(
-                              0,
-                              bitmap.width - 1
-                          )
-
-                  val cropTop =
-                      (
-                          refTop *
-                              scaleY
-                      )
-                          .toInt()
-                          .coerceIn(
-                              0,
-                              bitmap.height - 1
-                          )
-
-                  val cropRight =
-                      (
-                          refRight *
-                              scaleX
-                      )
-                          .toInt()
-                          .coerceIn(
-                              cropLeft + 1,
-                              bitmap.width
-                          )
-
-                  val cropBottom =
-                      (
-                          refBottom *
-                              scaleY
-                      )
-                          .toInt()
-                          .coerceIn(
-                              cropTop + 1,
-                              bitmap.height
-                          )
-
-                  val crop =
-                      Bitmap.createBitmap(
-                          bitmap,
-                          cropLeft,
-                          cropTop,
-                          cropRight -
-                              cropLeft,
-                          cropBottom -
-                              cropTop
-                      )
-
-                  val image =
-                      InputImage.fromBitmap(
-                          crop,
-                          0
-                      )
-
-                  recognizer
-                      .process(image)
-                      .addOnSuccessListener { result ->
-
-                          try {
-
-                              val board =
-                                  Array(
-                                      ROWS
-                                  ) {
-                                      IntArray(
-                                          COLS
-                                      )
-                                  }
-
-                              var recognizedCount =
-                                  0
-
-                              for (
-                                  block
-                                  in result.textBlocks
-                              ) {
-
-                                  for (
-                                      line
-                                      in block.lines
-                                  ) {
-
-                                      for (
-                                          element
-                                          in line.elements
-                                      ) {
-
-                                          val raw =
-                                              element.text
-                                                  .trim()
-
-                                          if (
-                                              raw.length != 1 ||
-                                              raw[0] !in
-                                              '1'..'9'
-                                          ) {
-                                              continue
-                                          }
-
-                                          val box =
-                                              element
-                                                  .boundingBox
-                                                  ?: continue
-
-                                          /*
-                                           * OCR 좌표는
-                                           * crop 기준이므로
-                                           * 원본 기준으로 복구한다.
-                                           */
-                                          val centerX =
-                                              (
-                                                  box.left +
-                                                      box.right
-                                              ) /
-                                                  2f +
-                                                  cropLeft
-
-                                          val centerY =
-                                              (
-                                                  box.top +
-                                                      box.bottom
-                                              ) /
-                                                  2f +
-                                                  cropTop
-
-                                          val refX =
-                                              centerX /
-                                                  scaleX
-
-                                          val refY =
-                                              centerY /
-                                                  scaleY
-
-                                          val col =
-                                              (
-                                                  (
-                                                      refX -
-                                                          FIRST_X
-                                                  ) /
-                                                      X_GAP
-                                              )
-                                                  .toInt()
-
-                                          val row =
-                                              (
-                                                  (
-                                                      refY -
-                                                          FIRST_Y
-                                                  ) /
-                                                      Y_GAP
-                                              )
-                                                  .toInt()
-
-                                          if (
-                                              row in
-                                              0 until ROWS &&
-                                              col in
-                                              0 until COLS
-                                          ) {
-
-                                              val expectedX =
-                                                  FIRST_X +
-                                                      col *
-                                                      X_GAP
-
-                                              val expectedY =
-                                                  FIRST_Y +
-                                                      row *
-                                                      Y_GAP
-
-                                              val distanceX =
-                                                  abs(
-                                                      refX -
-                                                          expectedX
-                                                  )
-
-                                              val distanceY =
-                                                  abs(
-                                                      refY -
-                                                          expectedY
-                                                  )
-
-                                              if (
-                                                  distanceX <
-                                                  CELL_TOLERANCE &&
-                                                  distanceY <
-                                                  CELL_TOLERANCE
-                                              ) {
-
-                                                  if (
-                                                      board[row][col] ==
-                                                      0
-                                                  ) {
-
-                                                      board[row][col] =
-                                                          raw.toInt()
-
-                                                      recognizedCount++
-                                                  }
-                                              }
-                                          }
-                                      }
-                                  }
-                              }
-
-                              saveOcrCount(
-                                  recognizedCount
-                              )
-
-                              if (
-                                  recognizedCount == 0
-                              ) {
-
-                                  setMoveStatus(
-                                      "숫자를 찾지 못함"
-                                  )
-
-                                  processing =
-                                      false
-
-                                  return@addOnSuccessListener
-                              }
-
-                              val move =
-                                  findSumTen(
-                                      board
-                                  )
-
-                              if (move == null) {
-
-                                  setMoveStatus(
-                                      "합계 10 영역 없음"
-                                  )
-
-                                  processing =
-                                      false
-
-                                  return@addOnSuccessListener
-                              }
-
-                              val moveText =
-                                  "(${move.r1 + 1},${move.c1 + 1}) → " +
-                                      "(${move.r2 + 1},${move.c2 + 1})"
-
-                              saveLastMove(
-                                  moveText
-                              )
-
-                              setMoveStatus(
-                                  "발견"
-                              )
-
-                              performMove(
-                                  move
-                              )
-
-                          } catch (
-                              e: Exception
-                          ) {
-
-                              setError(
-                                  "OCR 결과 처리 오류: ${e.message}"
-                              )
-
-                              processing =
-                                  false
-                          }
-
-                      }
-                      .addOnFailureListener { e ->
-
-                          setError(
-                              "OCR 실패: ${e.message}"
-                          )
-
-                          processing =
-                              false
-                      }
-              }
-
-              private fun findSumTen(
-                  board: Array<IntArray>
-              ): Move? {
-
-                  val prefix =
-                      Array(
-                          ROWS + 1
-                      ) {
-                          IntArray(
-                              COLS + 1
-                          )
-                      }
-
-                  for (
-                      r in 0 until ROWS
+                  if (
+                          planes == null
+                                  || planes.length == 0
                   ) {
-
-                      for (
-                          c in 0 until COLS
-                      ) {
-
-                          prefix[r + 1][c + 1] =
-                              board[r][c] +
-                                  prefix[r][c + 1] +
-                                  prefix[r + 1][c] -
-                                  prefix[r][c]
-                      }
+                      return null;
                   }
 
-                  var best:
-                      Move? = null
+                  Image.Plane plane =
+                          planes[0];
 
-                  var bestArea =
-                      Int.MAX_VALUE
+                  java.nio.ByteBuffer buffer =
+                          plane.getBuffer();
+
+                  int pixelStride =
+                          plane.getPixelStride();
+
+                  int rowStride =
+                          plane.getRowStride();
+
+                  int rowPadding =
+                          rowStride -
+                                  pixelStride *
+                                          image.getWidth();
+
+                  int bitmapWidth =
+                          image.getWidth()
+                                  + rowPadding /
+                                  pixelStride;
+
+                  Bitmap bitmap =
+                          Bitmap.createBitmap(
+                                  bitmapWidth,
+                                  image.getHeight(),
+                                  Bitmap.Config.ARGB_8888
+                          );
+
+                  buffer.rewind();
+
+                  bitmap.copyPixelsFromBuffer(
+                          buffer
+                  );
+
+                  return Bitmap.createBitmap(
+                          bitmap,
+                          0,
+                          0,
+                          image.getWidth(),
+                          image.getHeight()
+                  );
+              }
+
+              private void recognizeBoard(
+                      Bitmap bitmap
+              ) {
+
+                  float scaleX =
+                          bitmap.getWidth()
+                                  / REF_WIDTH;
+
+                  float scaleY =
+                          bitmap.getHeight()
+                                  / REF_HEIGHT;
+
+                  int left =
+                          Math.max(
+                                  0,
+                                  Math.round(
+                                          (
+                                                  FIRST_X -
+                                                          BOARD_MARGIN
+                                          ) * scaleX
+                                  )
+                          );
+
+                  int top =
+                          Math.max(
+                                  0,
+                                  Math.round(
+                                          (
+                                                  FIRST_Y -
+                                                          BOARD_MARGIN
+                                          ) * scaleY
+                                  )
+                          );
+
+                  int right =
+                          Math.min(
+                                  bitmap.getWidth(),
+                                  Math.round(
+                                          (
+                                                  FIRST_X +
+                                                          (
+                                                                  COLS - 1
+                                                          ) *
+                                                          X_GAP +
+                                                          BOARD_MARGIN
+                                          ) * scaleX
+                                  )
+                          );
+
+                  int bottom =
+                          Math.min(
+                                  bitmap.getHeight(),
+                                  Math.round(
+                                          (
+                                                  FIRST_Y +
+                                                          (
+                                                                  ROWS - 1
+                                                          ) *
+                                                          Y_GAP +
+                                                          BOARD_MARGIN
+                                          ) * scaleY
+                                  )
+                          );
+
+                  if (
+                          right <= left
+                                  || bottom <= top
+                  ) {
+
+                      setError(
+                              "게임판 영역 계산 실패"
+                      );
+
+                      processing = false;
+
+                      return;
+                  }
+
+                  Bitmap crop =
+                          Bitmap.createBitmap(
+                                  bitmap,
+                                  left,
+                                  top,
+                                  right - left,
+                                  bottom - top
+                          );
+
+                  InputImage inputImage =
+                          InputImage.fromBitmap(
+                                  crop,
+                                  0
+                          );
+
+                  recognizer
+                          .process(inputImage)
+                          .addOnSuccessListener(
+                                  result -> {
+
+                                      analyzeOcr(
+                                              result,
+                                              left,
+                                              top,
+                                              scaleX,
+                                              scaleY
+                                      );
+                                  }
+                          )
+                          .addOnFailureListener(
+                                  e -> {
+
+                                      setError(
+                                              "OCR 실패: "
+                                                      + e.getMessage()
+                                      );
+
+                                      processing = false;
+                                  }
+                          );
+              }
+
+              private void analyzeOcr(
+                      com.google.mlkit.vision.text.Text result,
+                      int cropLeft,
+                      int cropTop,
+                      float scaleX,
+                      float scaleY
+              ) {
+
+                  int[][] board =
+                          new int[ROWS][COLS];
+
+                  int recognized =
+                          0;
 
                   for (
-                      r1 in 0 until ROWS
+                          com.google.mlkit.vision.text.Text.TextBlock block
+                                  : result.getTextBlocks()
                   ) {
 
                       for (
-                          c1 in 0 until COLS
+                              com.google.mlkit.vision.text.Text.Line line
+                                      : block.getLines()
                       ) {
 
                           for (
-                              r2 in r1 until ROWS
+                                  com.google.mlkit.vision.text.Text.Element element
+                                          : line.getElements()
                           ) {
 
-                              for (
-                                  c2 in c1 until COLS
+                              String text =
+                                      element.getText()
+                                              .trim();
+
+                              if (
+                                      text.length() != 1
+                                              || text.charAt(0) < '1'
+                                              || text.charAt(0) > '9'
+                              ) {
+                                  continue;
+                              }
+
+                              android.graphics.Rect box =
+                                      element.getBoundingBox();
+
+                              if (box == null) {
+                                  continue;
+                              }
+
+                              float centerX =
+                                      (
+                                              box.left +
+                                                      box.right
+                                      ) / 2f;
+
+                              float centerY =
+                                      (
+                                              box.top +
+                                                      box.bottom
+                                      ) / 2f;
+
+                              centerX += cropLeft;
+
+                              centerY += cropTop;
+
+                              float refX =
+                                      centerX /
+                                              scaleX;
+
+                              float refY =
+                                      centerY /
+                                              scaleY;
+
+                              int col =
+                                      Math.round(
+                                              (
+                                                      refX -
+                                                              FIRST_X
+                                              ) /
+                                                      X_GAP
+                                      );
+
+                              int row =
+                                      Math.round(
+                                              (
+                                                      refY -
+                                                              FIRST_Y
+                                              ) /
+                                                      Y_GAP
+                                      );
+
+                              if (
+                                      row < 0
+                                              || row >= ROWS
+                                              || col < 0
+                                              || col >= COLS
+                              ) {
+                                  continue;
+                              }
+
+                              float expectedX =
+                                      FIRST_X +
+                                              col *
+                                                      X_GAP;
+
+                              float expectedY =
+                                      FIRST_Y +
+                                              row *
+                                                      Y_GAP;
+
+                              float dx =
+                                      Math.abs(
+                                              refX -
+                                                      expectedX
+                                      );
+
+                              float dy =
+                                      Math.abs(
+                                              refY -
+                                                      expectedY
+                                      );
+
+                              if (
+                                      dx <= TOLERANCE
+                                              && dy <= TOLERANCE
                               ) {
 
-                                  val sum =
-                                      prefix[r2 + 1][c2 + 1] -
-                                          prefix[r1][c2 + 1] -
-                                          prefix[r2 + 1][c1] +
-                                          prefix[r1][c1]
-
                                   if (
-                                      sum == 10
+                                          board[row][col] == 0
                                   ) {
 
-                                      val area =
-                                          (
-                                              r2 -
-                                                  r1 +
-                                                  1
-                                          ) *
-                                              (
-                                                  c2 -
-                                                      c1 +
-                                                      1
-                                              )
+                                      board[row][col] =
+                                              Integer.parseInt(
+                                                      text
+                                              );
 
-                                      if (
-                                          area <
-                                          bestArea
-                                      ) {
-
-                                          bestArea =
-                                              area
-
-                                          best =
-                                              Move(
-                                                  r1,
-                                                  c1,
-                                                  r2,
-                                                  c2
-                                              )
-                                      }
+                                      recognized++;
                                   }
                               }
                           }
                       }
                   }
 
-                  return best
+                  saveOcrCount(
+                          recognized
+                  );
+
+                  if (recognized == 0) {
+
+                      setMoveStatus(
+                              "숫자를 찾지 못함"
+                      );
+
+                      processing = false;
+
+                      return;
+                  }
+
+                  Move move =
+                          findSumTen(
+                                  board
+                          );
+
+                  if (move == null) {
+
+                      setMoveStatus(
+                              "합계 10 없음"
+                      );
+
+                      processing = false;
+
+                      return;
+                  }
+
+                  setMoveStatus(
+                          "✅ 발견"
+                  );
+
+                  String moveText =
+                          "("
+                                  + (move.r1 + 1)
+                                  + ","
+                                  + (move.c1 + 1)
+                                  + ") → ("
+                                  + (move.r2 + 1)
+                                  + ","
+                                  + (move.c2 + 1)
+                                  + ")";
+
+                  saveLastMove(
+                          moveText
+                  );
+
+                  performMove(
+                          move
+                  );
               }
 
-              private fun performMove(
-                  move: Move
+              private Move findSumTen(
+                      int[][] board
               ) {
 
-                  val scaleX =
-                      screenWidth.toFloat() /
-                          REF_WIDTH
+                  int[][] prefix =
+                          new int[
+                                  ROWS + 1
+                          ][
+                                  COLS + 1
+                          ];
 
-                  val scaleY =
-                      screenHeight.toFloat() /
-                          REF_HEIGHT
-
-                  val startX =
-                      (
-                          FIRST_X +
-                              move.c1 *
-                              X_GAP
-                      ) *
-                          scaleX
-
-                  val startY =
-                      (
-                          FIRST_Y +
-                              move.r1 *
-                              Y_GAP
-                      ) *
-                          scaleY
-
-                  val endX =
-                      (
-                          FIRST_X +
-                              move.c2 *
-                              X_GAP
-                      ) *
-                          scaleX
-
-                  val endY =
-                      (
-                          FIRST_Y +
-                              move.r2 *
-                              Y_GAP
-                      ) *
-                          scaleY
-
-                  val service =
-                      AppleAccessibilityService
-                          .instance
-
-                  if (
-                      service == null
+                  for (
+                          int r = 0;
+                          r < ROWS;
+                          r++
                   ) {
 
+                      for (
+                              int c = 0;
+                              c < COLS;
+                              c++
+                      ) {
+
+                          prefix[r + 1][c + 1] =
+                                  board[r][c]
+                                          + prefix[r][c + 1]
+                                          + prefix[r + 1][c]
+                                          - prefix[r][c];
+                      }
+                  }
+
+                  Move best = null;
+
+                  int bestArea =
+                          Integer.MAX_VALUE;
+
+                  for (
+                          int r1 = 0;
+                          r1 < ROWS;
+                          r1++
+                  ) {
+
+                      for (
+                              int c1 = 0;
+                              c1 < COLS;
+                              c1++
+                      ) {
+
+                          for (
+                                  int r2 = r1;
+                                  r2 < ROWS;
+                                  r2++
+                          ) {
+
+                              for (
+                                      int c2 = c1;
+                                      c2 < COLS;
+                                      c2++
+                              ) {
+
+                                  int sum =
+                                          prefix[r2 + 1][c2 + 1]
+                                                  - prefix[r1][c2 + 1]
+                                                  - prefix[r2 + 1][c1]
+                                                  + prefix[r1][c1];
+
+                                  if (sum != 10) {
+                                      continue;
+                                  }
+
+                                  int area =
+                                          (
+                                                  r2 - r1 + 1
+                                          ) *
+                                                  (
+                                                          c2 - c1 + 1
+                                                  );
+
+                                  if (
+                                          area < bestArea
+                                  ) {
+
+                                      bestArea =
+                                              area;
+
+                                      best =
+                                              new Move(
+                                                      r1,
+                                                      c1,
+                                                      r2,
+                                                      c2
+                                              );
+                                  }
+                              }
+                          }
+                      }
+                  }
+
+                  return best;
+              }
+
+              private void performMove(
+                      Move move
+              ) {
+
+                  float scaleX =
+                          screenWidth /
+                                  REF_WIDTH;
+
+                  float scaleY =
+                          screenHeight /
+                                  REF_HEIGHT;
+
+                  float startX =
+                          (
+                                  FIRST_X +
+                                          move.c1 *
+                                                  X_GAP
+                          ) * scaleX;
+
+                  float startY =
+                          (
+                                  FIRST_Y +
+                                          move.r1 *
+                                                  Y_GAP
+                          ) * scaleY;
+
+                  float endX =
+                          (
+                                  FIRST_X +
+                                          move.c2 *
+                                                  X_GAP
+                          ) * scaleX;
+
+                  float endY =
+                          (
+                                  FIRST_Y +
+                                          move.r2 *
+                                                  Y_GAP
+                          ) * scaleY;
+
+                  AppleAccessibilityService service =
+                          AppleAccessibilityService.instance;
+
+                  if (service == null) {
+
                       setError(
-                          "접근성 서비스가 사라짐"
-                      )
+                              "접근성 서비스가 연결되지 않았습니다."
+                      );
 
-                      processing =
-                          false
+                      processing = false;
 
-                      return
+                      return;
                   }
 
                   service.swipe(
-                      startX,
-                      startY,
-                      endX,
-                      endY,
-                      180L
-                  ) { success ->
+                          startX,
+                          startY,
+                          endX,
+                          endY,
+                          220,
+                          success -> {
 
-                      if (success) {
+                              if (success) {
 
-                          saveGesture(
-                              "✅ 성공"
-                          )
+                                  saveGesture(
+                                          "✅ 성공"
+                                  );
 
-                      } else {
+                              } else {
 
-                          saveGesture(
-                              "❌ 실패"
-                          )
-                      }
+                                  saveGesture(
+                                          "❌ 실패"
+                                  );
+                              }
 
-                      /*
-                       * 다음 화면을 다시 분석한다.
-                       */
-                      handler.postDelayed(
-                          {
-                              processing =
-                                  false
-                          },
-                          500L
-                      )
-                  }
+                              /*
+                               * 게임판이 바뀔 시간을 준 뒤
+                               * 다시 OCR한다.
+                               */
+                              handler.postDelayed(
+                                      () -> {
+
+                                          processing =
+                                                  false;
+
+                                      },
+                                      650
+                              );
+                          }
+                  );
               }
 
-              private fun createNotificationChannel() {
+              private void createNotificationChannel() {
 
                   if (
-                      Build.VERSION.SDK_INT >=
-                      Build.VERSION_CODES.O
+                          Build.VERSION.SDK_INT
+                                  < Build.VERSION_CODES.O
                   ) {
+                      return;
+                  }
 
-                      val channel =
-                          NotificationChannel(
-                              CHANNEL_ID,
-                              "사과게임 자동 플레이",
-                              NotificationManager
-                                  .IMPORTANCE_LOW
-                          )
+                  NotificationChannel channel =
+                          new NotificationChannel(
+                                  CHANNEL_ID,
+                                  "사과게임 자동 플레이",
+                                  NotificationManager
+                                          .IMPORTANCE_LOW
+                          );
 
-                      val manager =
-                          getSystemService(
-                              NotificationManager::class.java
-                          )
+                  NotificationManager manager =
+                          (NotificationManager)
+                                  getSystemService(
+                                          NOTIFICATION_SERVICE
+                                  );
+
+                  if (manager != null) {
 
                       manager.createNotificationChannel(
-                          channel
-                      )
+                              channel
+                      );
                   }
               }
 
-              private fun prefs() =
-                  getSharedPreferences(
-                      "apple_game_status",
-                      Context.MODE_PRIVATE
-                  )
+              private android.content.SharedPreferences prefs() {
 
-              private fun setCaptureStatus(
-                  value: String
+                  return getSharedPreferences(
+                          "apple_game_status",
+                          MODE_PRIVATE
+                  );
+              }
+
+              private void saveRunning(
+                      boolean value
               ) {
 
                   prefs()
-                      .edit()
-                      .putString(
-                          "capture",
-                          value
-                      )
-                      .apply()
+                          .edit()
+                          .putBoolean(
+                                  "running",
+                                  value
+                          )
+                          .apply();
               }
 
-              private fun saveOcrCount(
-                  count: Int
+              private void saveCapture(
+                      String value
               ) {
 
                   prefs()
-                      .edit()
-                      .putInt(
-                          "ocr_count",
-                          count
-                      )
-                      .apply()
+                          .edit()
+                          .putString(
+                                  "capture",
+                                  value
+                          )
+                          .apply();
               }
 
-              private fun setMoveStatus(
-                  value: String
+              private void saveOcrCount(
+                      int value
               ) {
 
                   prefs()
-                      .edit()
-                      .putString(
-                          "move",
-                          value
-                      )
-                      .apply()
+                          .edit()
+                          .putInt(
+                                  "ocr_count",
+                                  value
+                          )
+                          .apply();
               }
 
-              private fun saveLastMove(
-                  value: String
+              private void setMoveStatus(
+                      String value
               ) {
 
                   prefs()
-                      .edit()
-                      .putString(
-                          "last_move",
-                          value
-                      )
-                      .apply()
+                          .edit()
+                          .putString(
+                                  "move",
+                                  value
+                          )
+                          .apply();
               }
 
-              private fun saveGesture(
-                  value: String
+              private void saveLastMove(
+                      String value
               ) {
 
                   prefs()
-                      .edit()
-                      .putString(
-                          "gesture",
-                          value
-                      )
-                      .apply()
+                          .edit()
+                          .putString(
+                                  "last_move",
+                                  value
+                          )
+                          .apply();
               }
 
-              private fun saveRunning(
-                  value: Boolean
+              private void saveGesture(
+                      String value
               ) {
 
                   prefs()
-                      .edit()
-                      .putBoolean(
-                          "running",
-                          value
-                      )
-                      .apply()
+                          .edit()
+                          .putString(
+                                  "gesture",
+                                  value
+                          )
+                          .apply();
               }
 
-              private fun setError(
-                  value: String
+              private void setError(
+                      String value
               ) {
 
                   prefs()
-                      .edit()
-                      .putString(
-                          "error",
-                          value
-                      )
-                      .apply()
+                          .edit()
+                          .putString(
+                                  "error",
+                                  value
+                          )
+                          .apply();
               }
 
-              override fun onDestroy() {
+              private void clearError() {
 
-                  running = false
+                  prefs()
+                          .edit()
+                          .putString(
+                                  "error",
+                                  ""
+                          )
+                          .apply();
+              }
 
-                  saveRunning(false)
+              @Override
+              public void onDestroy() {
 
-                  processing = false
+                  running = false;
+
+                  saveRunning(false);
+
+                  processing = false;
 
                   handler.removeCallbacksAndMessages(
-                      null
-                  )
+                          null
+                  );
 
-                  imageReader?.setOnImageAvailableListener(
-                      null,
-                      null
-                  )
+                  if (imageReader != null) {
 
-                  imageReader?.close()
+                      imageReader.setOnImageAvailableListener(
+                              null,
+                              null
+                      );
 
-                  imageReader = null
+                      imageReader.close();
 
-                  virtualDisplay?.release()
-
-                  virtualDisplay = null
-
-                  try {
-                      projection?.stop()
-                  } catch (
-                      _: Exception
-                  ) {
+                      imageReader = null;
                   }
 
-                  projection = null
+                  if (virtualDisplay != null) {
 
-                  recognizer.close()
+                      virtualDisplay.release();
 
-                  super.onDestroy()
+                      virtualDisplay = null;
+                  }
+
+                  if (projection != null) {
+
+                      try {
+                          projection.stop();
+                      } catch (Exception ignored) {
+                      }
+
+                      projection = null;
+                  }
+
+                  if (recognizer != null) {
+
+                      recognizer.close();
+
+                      recognizer = null;
+                  }
+
+                  super.onDestroy();
               }
 
-              override fun onBind(
-                  intent: Intent?
-              ): IBinder? {
-                  return null
+              @Override
+              public IBinder onBind(
+                      Intent intent
+              ) {
+
+                  return null;
               }
 
-              data class Move(
-                  val r1: Int,
-                  val c1: Int,
-                  val r2: Int,
-                  val c2: Int
-              )
+              private static class Move {
+
+                  final int r1;
+                  final int c1;
+                  final int r2;
+                  final int c2;
+
+                  Move(
+                          int r1,
+                          int c1,
+                          int r2,
+                          int c2
+                  ) {
+
+                      this.r1 = r1;
+                      this.c1 = c1;
+                      this.r2 = r2;
+                      this.c2 = c2;
+                  }
+              }
           }
           EOF
+
+      # ------------------------------------------------------
+      # Check Gradle
+      # ------------------------------------------------------
 
       - name: Check Gradle
         run: |
           gradle --version
           gradle tasks --no-daemon
+
+      # ------------------------------------------------------
+      # Clean
+      # ------------------------------------------------------
 
       - name: Clean
         run: |
@@ -2151,15 +2306,27 @@ jobs:
             --no-daemon \
             --stacktrace
 
+      # ------------------------------------------------------
+      # Build
+      # ------------------------------------------------------
+
       - name: Build APK
         run: |
           gradle assembleDebug \
             --no-daemon \
             --stacktrace
 
+      # ------------------------------------------------------
+      # Upload APK
+      # ------------------------------------------------------
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
+
         with:
-          name: AppleGameAuto-v2-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: AppleGameAuto-v3-debug
+
+          path:
+            app/build/outputs/apk/debug/app-debug.apk
+
           if-no-files-found: error
